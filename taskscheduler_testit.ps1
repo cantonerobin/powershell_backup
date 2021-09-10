@@ -135,9 +135,11 @@ $Btn_add_routine_OnClick=
      ################################# Generate Task in Task Scheduler ******************************************     
         #define Task name
         $task_name = "AutomatedBackup" + $date
-  
+        
+        $argument = "-Command `"& '$script_path' -p1 'hallo' -p2 'Welt'`""
+
         #Generate new Action
-        $Action = New-ScheduledTaskAction -Execute "$script_path" -Argument "-NonInteractive -NoLogo -NoProfile"
+        $Action = New-ScheduledTaskAction -Execute "Powershell.exe" -Argument "-NonInteractive -NoLogo -NoProfile" $argument
 
         #execute when Daily is selected
         if ($periode -eq "Daily")
