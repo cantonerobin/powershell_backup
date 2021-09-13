@@ -136,11 +136,13 @@ $Btn_add_routine_OnClick=
         #define Task name
         $task_name = "AutomatedBackup" + $date
         
-        $argument = "-Command `"& '$script_path' -p1 'hallo' -p2 'Welt'`""
+        #$argument = "-Command `"& '$script_path' p1 -'hallo' -p2 'Welt'`""
+
+        $argument = $script_path
 
         #Generate new Action
-        $Action = New-ScheduledTaskAction -Execute "Powershell.exe" -Argument "-NonInteractive -NoLogo -NoProfile" $argument
-
+        $Action = New-ScheduledTaskAction -Execute "Powershell.exe" -Argument "-NonInteractive -NoLogo -NoProfile $argument"
+ 
         #execute when Daily is selected
         if ($periode -eq "Daily")
         {
@@ -171,6 +173,7 @@ $Btn_add_routine_OnClick=
 
         $test1 =     $Tbx_original_path.Text
         $test2 =     $Tbx_backup_path.Text
+
         #When the Zip Checkbox is ticked
         if ($Check_zip.Checked)
         {
@@ -188,7 +191,7 @@ $Btn_add_routine_OnClick=
 $handler_Btn_cancel_Click= 
 {
 
-    #Fenster schliessen
+    #close Form
     $frm_whole_form.Close()
 
 }
