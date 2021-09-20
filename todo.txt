@@ -1,0 +1,4 @@
+TODO
+
+- Disable Weekday if Daily is ticked
+- Try Catch Part
