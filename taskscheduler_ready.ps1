@@ -213,19 +213,11 @@ $handler_Btn_cancel_Click=
 
 }
 
-$Btn_start_backup_OnClick= 
-{
-      
-      
-}
-
 $handler_checkBox1_CheckedChanged=
 {
 #TODO: Place custom script here
 
 }
-
-
 
 $handler_frm_default_Load= 
 {
@@ -233,19 +225,13 @@ $handler_frm_default_Load=
 
 }
 
-
-
 $Check_zip_action= 
 {
 #TODO: Place custom script here
 
 }
 
-$handler_label5_Click= 
-{
-#TODO: Place custom script here
 
-}
 
 
 
