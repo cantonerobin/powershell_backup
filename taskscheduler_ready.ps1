@@ -65,6 +65,7 @@ $splitter1 = New-Object System.Windows.Forms.Splitter
         $date = $date  -replace "\.",""
         $date = $date  -replace " ",""
 
+
 $Btn_original_path_OnClick=
 {
         #set standard Path for File Dialog
