@@ -1,11 +1,9 @@
 ﻿########################################################################
 # Autor:     Cantone Robin
-# Version:   1.0
-# Date:      20.09.2021
+# Version:   1.10
+# Date:      27.09.2021
 # Function:  Create one time Backups or Backup Routines with Taskscheduler
 ########################################################################
-
-
 
 function backup_client {
 #Import the Assemblies Libraries
@@ -56,16 +54,7 @@ $Btn_add_routine = New-Object System.Windows.Forms.Button       #Add backup rout
 $Btn_start_backup = New-Object System.Windows.Forms.Button      #Start Backup
 
 
-$splitter1 = New-Object System.Windows.Forms.Splitter
-
 ### Add Functionalitys to the Form Objects
-
-#read actual date and format it
-        $date = get-date -Format  "dd.MM.yyyy HH:mm:ss"
-        $date = $date -replace ":",""
-        $date = $date  -replace "\.",""
-        $date = $date  -replace " ",""
-
 
 $Btn_original_path_OnClick=
 {
@@ -79,12 +68,7 @@ $Btn_original_path_OnClick=
             #Show selected Path in Textbox
             $Tbx_original_path.Text = $Dialog_original_path.SelectedPath #Gibt selektierten Ordner zurück
         }
-        
-        else
-        {
-            #When no Direcotry is selected
-            $Tbx_original_path.Text = "No Directory was selected.."
-        }
+      
 }
 
 $Btn_backup_path_OnClick= 
@@ -99,111 +83,176 @@ $Btn_backup_path_OnClick=
         {
             #Show selected Path in Textbox
             $Tbx_backup_path.Text = $Dialog_backup_path.SelectedPath
-            $Tbx_backup_path.Text = $Tbx_backup_path.Text + "\Backup" + $date
+            $Tbx_backup_path.Text = $Tbx_backup_path.Text + "\Backup"
         }
-        
-        else
-        {
-            #When no Direcotry is selected
-            $Tbx_backup_path.Text = "No Directory was selected.."
-        }
+       
 }
-
 
 $handler_Btn_start_backup_Click= 
 {
 
-    #When the Zip Checkbox is ticked
-    if ($Check_zip.Checked)
-    {
-        #Create or add to an existing Archive
-        Compress-Archive -Path $Tbx_original_path.Text -Update -DestinationPath $Tbx_backup_path.Text
-    }
+    if(!(($Tbx_backup_path.Text -eq "select path ...")  -or ($Tbx_original_path.Text -eq "select path ..."))){
+        
+        #read actual date and format it
+        $date = get-date -Format  "dd.MM.yyyy HH:mm:ss"
+        $date = $date -replace ":",""
+        $date = $date  -replace "\.",""
+        $date = $date  -replace " ",""
 
-    else 
-    {  
-        #Copy the Directory
-        copy-item -recurse $Tbx_original_path.Text $Tbx_backup_path.Text
-    }     
+        #set Backuppath
+        $backup_path = $($Tbx_backup_path.Text) + $date 
+
+        #Test if File already exist
+        if(!(Test-Path -Path $backup_path ))
+        {
+            
+            #When the Zip Checkbox is ticked
+            if ($Check_zip.Checked)
+            {
+                #Create or add to an existing Archive
+                Compress-Archive -Path $Tbx_original_path.Text -Update -DestinationPath $backup_path
+            }
+
+            else 
+            {  
+                #Copy the Directory
+                copy-item -recurse $Tbx_original_path.Text $backup_path
+            }
+        }
+        else
+        {
+            Write-Host "Folder already exists"
+        }
+    }
+    else
+    {
+        write-host "Please select a Path!"
+    }
 }
 
 $Btn_add_routine_OnClick= 
+{
+    if(!(($Tbx_backup_path.Text -eq "select path ...")  -or ($Tbx_original_path.Text -eq "select path ...")))
     {
 
-        #read periode from Dropdown
-        $periode = $DD_periode.SelectedItem.ToString()
-    
-        if ($periode -ne "Daily")
-        {
-            #read DayOfWeek from Dropdown
-            $dayofweek = $DD_dayofweek.SelectedItem.ToString()
-        }
+        #read actual date and format it
+        $date = get-date -Format  "dd.MM.yyyy HH:mm:ss"
+        $date = $date -replace ":",""
+        $date = $date  -replace "\.",""
+        $date = $date  -replace " ",""
 
-        #read Time from Dropdown
-        $time = $DD_time.SelectedItem.ToString()
-    
-        
         #generate save path for the Script
         $script_path =  "'$env:USERPROFILE'\Documents\tasksch" + $date + ".ps1"
-
         #remove unwanted characters (whitespaces and ')
         $script_path = $script_path -replace "\s","" 
         $script_path = $script_path -replace "'",""
 
+        if(!(Test-Path -Path $script_path)){
 
-     ################################# Generate Task in Task Scheduler ******************************************     
-        #define Task name
-        $task_name = "AutomatedBackup" + $date
-        
-        #Generate new Action
-        $Action = New-ScheduledTaskAction -Execute "Powershell.exe" -Argument "$script_path -NonInteractive -NoLogo -NoProfile "
- 
-        #execute when Daily is selected
-        if ($periode -eq "Daily")
+            #read periode from Dropdown
+            $periode = $DD_periode.SelectedItem.ToString()
+            
+            if (!($periode -eq "Daily"))
+            {
+                #read DayOfWeek from Dropdown
+                $dayofweek = $DD_dayofweek.SelectedItem.ToString()
+            }
+
+            #read Time from Dropdown
+            $time = $DD_time.SelectedItem.ToString()
+            
+            ############################## Generate Task in Task Scheduler ******************************************     
+            #define Task name
+            $task_name = "AutomatedBackup" + $date
+            
+            #Generate new Action
+            $Action = New-ScheduledTaskAction -Execute "Powershell.exe" -Argument "$script_path -NonInteractive -NoLogo -NoProfile "
+    
+            if ($periode -eq "Daily")
+            {
+                #Define Trigger
+                $Trigger = New-ScheduledTaskTrigger -Daily -At $time
+            }
+
+            elseif ($periode -eq "Weekly")
+            {   
+                #Define Trigger
+                $Trigger = New-ScheduledTaskTrigger -Weekly -DaysOfWeek $dayofweek -At $time
+            }
+
+            elseif ($periode -eq "Monthly")
+            {
+                #Define Trigger
+                $Trigger = New-ScheduledTaskTrigger -Weekly -WeeksInterval 4 -DaysOfWeek $dayofweek -At $time
+            }
+            else 
+            {
+                write-host "Select an Periode first!"
+            }
+
+            #Give additional Settings (requiered)
+            $Settings = New-ScheduledTaskSettingsSet
+
+            #Put it all together
+            $Task = New-ScheduledTask -Action $Action -Trigger $Trigger -Settings $Settings
+
+            #Add it to the Scheduler
+            Register-ScheduledTask -TaskName $task_name -InputObject $Task
+
+            #add date at end of the Path
+            $backup_path = $($Tbx_backup_path.Text) + $date
+            
+            #Create a File with the following Content
+            #When the Zip Checkbox is ticked
+            if ($Check_zip.Checked)
+            {
+            <#
+            $value = @"
+                #read actual date and format it
+                `$date = get-date -Format  "dd.MM.yyyy HH:mm:ss"
+                `$date = `$date -replace ":",""
+                `$date = `$date -replace "\.",""
+                `$date = `$date -replace " ",""
+                Compress-Archive -Path $($Tbx_original_path.Text) -Update -DestinationPath $backup_path + `$date
+"@
+                #Create or add to an existing Archive
+                New-Item $script_path -Value $value
+            #>
+
+            New-Item $script_path -Value "Compress-Archive -Path $($Tbx_original_path.Text) -Update -DestinationPath $backup_path"
+            }
+
+            else 
+            {
+            <#
+                $value = @"
+                #read actual date and format it
+                `$date = get-date -Format  "dd.MM.yyyy HH:mm:ss"
+                `$date = `$date -replace ":",""
+                `$date = `$date -replace "\.",""
+                `$date = `$date -replace " ",""
+                copy-item -recurse $($Tbx_original_path.Text) $backup_path + `$date
+"@
+                #Create or add to an existing Archive
+                New-Item $script_path -Value $value
+            #>
+
+            New-Item $script_path -Value "copy-item -recurse -Force $($Tbx_original_path.Text) $backup_path"
+            }
+
+            #Report status
+            task_added
+        }
+        else
         {
-            #Define Trigger
-            $Trigger = New-ScheduledTaskTrigger -Daily -At $time
+        write-host "Plese wait 1 Second"    
         }
-
-        elseif ($periode -eq "Weekly")
-        {   
-            #Define Trigger
-            $Trigger = New-ScheduledTaskTrigger -Weekly -DaysOfWeek $dayofweek -At $time
-        }
-
-        elseif ($periode -eq "Monthly")
-        {
-            #Define Trigger
-            $Trigger = New-ScheduledTaskTrigger -Weekly -WeeksInterval 4 -DaysOfWeek $dayofweek -At $time
-        }
-
-        #Give additional Settings (requiered)
-        $Settings = New-ScheduledTaskSettingsSet
-
-        #Put it all together
-        $Task = New-ScheduledTask -Action $Action -Trigger $Trigger -Settings $Settings
-
-        #Add it to the Scheduler
-        Register-ScheduledTask -TaskName $task_name -InputObject $Task
-
-        #Create a File with the following Content
-        #When the Zip Checkbox is ticked
-        if ($Check_zip.Checked)
-        {
-            #Create or add to an existing Archive
-            New-Item $script_path -Value "Compress-Archive -Path $($Tbx_original_path.Text) -Update -DestinationPath $($Tbx_backup_path.Text)"
-        }
-
-        else 
-        {  
-            #Copy the Directory
-            New-Item $script_path -Value "copy-item -recurse $($Tbx_original_path.Text) $($Tbx_backup_path.Text)"
-        }
-
-        #Report status
-        task_added
-
     }
+    else
+    {
+        write-host "Please select a Path first!"    
+    }
+}
 
 $handler_Btn_cancel_Click= 
 {
@@ -213,39 +262,6 @@ $handler_Btn_cancel_Click=
 
 }
 
-$handler_checkBox1_CheckedChanged=
-{
-#TODO: Place custom script here
-
-}
-
-$handler_frm_default_Load= 
-{
-#TODO: Place custom script here
-
-}
-
-$Check_zip_action= 
-{
-#TODO: Place custom script here
-
-}
-
-
-
-
-
-$handler_label4_Click= 
-{
-#TODO: Place custom script here
-
-}
-
-$handler_Lbl_DD_time_Click= 
-{
-#TODO: Place custom script here
-
-}
 
 $OnLoadForm_StateCorrection=
 {#Correct the initial state of the form to prevent the .Net maximized form issue
@@ -262,16 +278,15 @@ $frm_whole_form.DataBindings.DefaultDataSourceUpdateMode = 0
 $frm_whole_form.Name = "frm_whole_form"
 $frm_whole_form.Text = "Backup Client"
 $frm_whole_form.add_Load($handler_frm_default_Load)
-
 $DD_dayofweek.DataBindings.DefaultDataSourceUpdateMode = 0
 $DD_dayofweek.FormattingEnabled = $True
-$DD_dayofweek.Items.Add("Monday")|Out-Null
-$DD_dayofweek.Items.Add("Tuesday")|Out-Null
-$DD_dayofweek.Items.Add("Wednesday")|Out-Null
-$DD_dayofweek.Items.Add("Thursday")|Out-Null
-$DD_dayofweek.Items.Add("Friday")|Out-Null
-$DD_dayofweek.Items.Add("Saturday")|Out-Null
-$DD_dayofweek.Items.Add("Sunday")|Out-Null
+
+#Populate the Array
+$DropDownArray_Day = "Monday" , "Tuesday" , "Wednesday" , "Thursday" , "Friday" , "Saturday" , "Sunday"
+ForEach ($Item in $DropDownArray_Day) {
+    $DD_dayofweek.Items.Add($Item) | Out-Null
+    }
+
 $System_Drawing_Point = New-Object System.Drawing.Point
 $System_Drawing_Point.X = 201
 $System_Drawing_Point.Y = 360
@@ -285,12 +300,11 @@ $DD_dayofweek.TabIndex = 25
 #make the Textbox not editable
 $DD_dayofweek.DropDownStyle = 2
 
-
-
 $frm_whole_form.Controls.Add($DD_dayofweek)
 
-$Lbl_dayofweek.DataBindings.DefaultDataSourceUpdateMode = 0
 
+#Label Day of Week
+$Lbl_dayofweek.DataBindings.DefaultDataSourceUpdateMode = 0
 $System_Drawing_Point = New-Object System.Drawing.Point
 $System_Drawing_Point.X = 201
 $System_Drawing_Point.Y = 334
@@ -305,32 +319,9 @@ $Lbl_dayofweek.Text = "Choose the Day of the Week"
 
 $frm_whole_form.Controls.Add($Lbl_dayofweek)
 
+#Dropdown Time
 $DD_time.DataBindings.DefaultDataSourceUpdateMode = 0
 $DD_time.FormattingEnabled = $True
-$DD_time.Items.Add("1am")|Out-Null
-$DD_time.Items.Add("2am")|Out-Null
-$DD_time.Items.Add("3am")|Out-Null
-$DD_time.Items.Add("4am")|Out-Null
-$DD_time.Items.Add("5am")|Out-Null
-$DD_time.Items.Add("6am")|Out-Null
-$DD_time.Items.Add("7am")|Out-Null
-$DD_time.Items.Add("8am")|Out-Null
-$DD_time.Items.Add("9am")|Out-Null
-$DD_time.Items.Add("10am")|Out-Null
-$DD_time.Items.Add("11am")|Out-Null
-$DD_time.Items.Add("12am")|Out-Null
-$DD_time.Items.Add("1pm")|Out-Null
-$DD_time.Items.Add("2pm")|Out-Null
-$DD_time.Items.Add("3pm")|Out-Null
-$DD_time.Items.Add("4pm")|Out-Null
-$DD_time.Items.Add("5pm")|Out-Null
-$DD_time.Items.Add("6pm")|Out-Null
-$DD_time.Items.Add("7pm")|Out-Null
-$DD_time.Items.Add("8pm")|Out-Null
-$DD_time.Items.Add("9pm")|Out-Null
-$DD_time.Items.Add("10pm")|Out-Null
-$DD_time.Items.Add("11pm")|Out-Null
-$DD_time.Items.Add("12pm")|Out-Null
 $System_Drawing_Point = New-Object System.Drawing.Point
 $System_Drawing_Point.X = 17
 $System_Drawing_Point.Y = 415
@@ -343,11 +334,16 @@ $DD_time.Size = $System_Drawing_Size
 $DD_time.TabIndex = 23
 #make the Textbox not editable
 $DD_time.DropDownStyle = 2
-
+#Populte Dropdown
+$DropDownArray_Time = "1am" , "2am" , "3am" , "4am" , "5am" , "6am" , "7am" , "8am" , "9am" , "10am" , "11am" ,  "12am" , "1pm" , "2pm" , "3pm" , "4pm" , "5pm" , "6pm" , "7pm" , "8pm", "9pm" , "10pm" , "11pm" , "12pm"
+ForEach ($Item in $DropDownArray_Time) {
+    $DD_time.Items.Add($Item) | Out-Null
+    }
 $frm_whole_form.Controls.Add($DD_time)
 
-$Lbl_DD_time.DataBindings.DefaultDataSourceUpdateMode = 0
 
+#Label Dropdown Time
+$Lbl_DD_time.DataBindings.DefaultDataSourceUpdateMode = 0
 $System_Drawing_Point = New-Object System.Drawing.Point
 $System_Drawing_Point.X = 16
 $System_Drawing_Point.Y = 397
@@ -363,8 +359,8 @@ $Lbl_DD_time.add_Click($handler_Lbl_DD_time_Click)
 
 $frm_whole_form.Controls.Add($Lbl_DD_time)
 
+#Label Dropdown Periode
 $Lbl_DD_periode.DataBindings.DefaultDataSourceUpdateMode = 0
-
 $System_Drawing_Point = New-Object System.Drawing.Point
 $System_Drawing_Point.X = 17
 $System_Drawing_Point.Y = 334
@@ -376,14 +372,10 @@ $System_Drawing_Size.Width = 206
 $Lbl_DD_periode.Size = $System_Drawing_Size
 $Lbl_DD_periode.TabIndex = 21
 $Lbl_DD_periode.Text = "How often do you want Backups?"
-
 $frm_whole_form.Controls.Add($Lbl_DD_periode)
 
-$DD_periode.DataBindings.DefaultDataSourceUpdateMode = 0
-$DD_periode.FormattingEnabled = $True
-$DD_periode.Items.Add("Daily")|Out-Null
-$DD_periode.Items.Add("Weekly")|Out-Null
-$DD_periode.Items.Add("Monthly")|Out-Null
+
+#Dropdown Periode
 $System_Drawing_Point = New-Object System.Drawing.Point
 $System_Drawing_Point.X = 17
 $System_Drawing_Point.Y = 360
@@ -394,27 +386,19 @@ $System_Drawing_Size.Height = 21
 $System_Drawing_Size.Width = 121
 $DD_periode.Size = $System_Drawing_Size
 $DD_periode.TabIndex = 20
+$DD_periode.DataBindings.DefaultDataSourceUpdateMode = 0
+$DD_periode.FormattingEnabled = $True
 #make the Textbox not editable
 $DD_periode.DropDownStyle = 2
 
-
+#Populate the Array
+$DropDownArray_Periode = "Daily" , "Weekly" , "Monthly"
+ForEach ($Item in $DropDownArray_Periode) {
+    $DD_periode.Items.Add($Item) | Out-Null
+    }
 $frm_whole_form.Controls.Add($DD_periode)
 
 
-$splitter1.DataBindings.DefaultDataSourceUpdateMode = 0
-$System_Drawing_Point = New-Object System.Drawing.Point
-$System_Drawing_Point.X = 0
-$System_Drawing_Point.Y = 0
-$splitter1.Location = $System_Drawing_Point
-$splitter1.Name = "splitter1"
-$System_Drawing_Size = New-Object System.Drawing.Size
-$System_Drawing_Size.Height = 533
-$System_Drawing_Size.Width = 3
-$splitter1.Size = $System_Drawing_Size
-$splitter1.TabIndex = 18
-$splitter1.TabStop = $False
-
-$frm_whole_form.Controls.Add($splitter1)
 
 $Lbl_options.DataBindings.DefaultDataSourceUpdateMode = 0
 
@@ -679,7 +663,6 @@ $InitialFormWindowState = New-Object System.Windows.Forms.FormWindowState
 $Btn_added_successfully_OnClick= 
 {
   $frm_task_added.Close()
-
 }
 
 $OnLoadForm_StateCorrection=
