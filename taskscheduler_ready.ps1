@@ -19,7 +19,6 @@ $InitialFormWindowState = New-Object System.Windows.Forms.FormWindowState
 $Lbl_welcome = New-Object System.Windows.Forms.Label            #Welcome text 
 $Lbl_options = New-Object System.Windows.Forms.Label            #Function explanation
 
-
 #Path Elements
 $Lbl_original_path = New-Object System.Windows.Forms.Label                   #Choose original Path
 $Btn_original_path = New-Object System.Windows.Forms.Button                  #Select original Path
@@ -55,7 +54,6 @@ $Btn_start_backup = New-Object System.Windows.Forms.Button      #Start Backup
 
 
 ### Add Functionalitys to the Form Objects
-
 $Btn_original_path_OnClick=
 {
         #set standard Path for File Dialog
@@ -73,7 +71,6 @@ $Btn_original_path_OnClick=
 
 $Btn_backup_path_OnClick= 
 {
-        
         #set standard Path for File Dialog
         $Dialog_backup_path.SelectedPath = "$env:userprofile\Documents"
         
@@ -85,19 +82,17 @@ $Btn_backup_path_OnClick=
             $Tbx_backup_path.Text = $Dialog_backup_path.SelectedPath
             $Tbx_backup_path.Text = $Tbx_backup_path.Text + "\Backup"
         }
-       
 }
 
 $handler_Btn_start_backup_Click= 
 {
-
     if(!(($Tbx_backup_path.Text -eq "select path ...")  -or ($Tbx_original_path.Text -eq "select path ..."))){
         
         #read actual date and format it
         $date = get-date -Format  "dd.MM.yyyy HH:mm:ss"
         $date = $date -replace ":",""
-        $date = $date  -replace "\.",""
-        $date = $date  -replace " ",""
+        $date = $date -replace "\.",""
+        $date = $date -replace " ",""
 
         #set Backuppath
         $backup_path = $($Tbx_backup_path.Text) + $date 
@@ -105,7 +100,6 @@ $handler_Btn_start_backup_Click=
         #Test if File already exist
         if(!(Test-Path -Path $backup_path ))
         {
-            
             #When the Zip Checkbox is ticked
             if ($Check_zip.Checked)
             {
@@ -201,7 +195,7 @@ $Btn_add_routine_OnClick=
 
             #add date at end of the Path
             $backup_path = $($Tbx_backup_path.Text) + $date
-            
+
             #Create a File with the following Content
             #When the Zip Checkbox is ticked
             if ($Check_zip.Checked)
@@ -256,10 +250,8 @@ $Btn_add_routine_OnClick=
 
 $handler_Btn_cancel_Click= 
 {
-
     #close Form
     $frm_whole_form.Close()
-
 }
 
 
